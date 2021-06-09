@@ -8,10 +8,11 @@ import numpy as np
 from tqdm import tqdm
 from des import *
 from dev import *
+from os import getenv
 
 clear = lambda: os.system('cls')
 def wait():
-  time.sleep(0.5)
+  time.sleep(0.25)
   print("\n>>>ENTER")
   temp = input()
   return
@@ -25,8 +26,8 @@ def ConnectDatabase():
   password = ""
   str_sql = "DRIVER={0};SERVER={1};DATABASE={2};UID={3};PWD={4}".format(drive, server, database, username, password)
 
-  cnxn = pyodbc.connect(str_sql)
-  cursor = cnxn.cursor()
+  conn = pyodbc.connect(str_sql)
+  cursor = conn.cursor()
 
   # Truy vấn CSDL lấy dữ liệu của des_table và dev_table
   query = """SELECT * FROM des"""
@@ -87,19 +88,21 @@ def Upload_Salary_To_Server(employee_salary_df):
   username = ""
   password = ""
   str_sql = "DRIVER={0};SERVER={1};DATABASE={2};UID={3};PWD={4}".format(drive, server, database, username, password)
+  conn = pyodbc.connect(str_sql)
+  cursor = conn.cursor()
 
-  cnxn = pyodbc.connect(str_sql)
-  cursor = cnxn.cursor()
+  # Tạo table employee_salary
+  cursor.execute("DROP TABLE IF EXISTS employee_salary")
+  conn.commit()
 
-  query = """CREATE TABLE employee_salary (id nvarchar(64), full_name nvarchar(200), dob date, phone nvarchar(16), salary float, extra float, total float,)"""
-  cursor.execute(query)
+  cursor.execute("CREATE TABLE employee_salary(id nvarchar(64), full_name nvarchar(200), dob date, phone nvarchar(16), salary float, extra float, total float PRIMARY KEY(id))")
+  conn.commit()
+
+  # Đẩy dữ liệu từ df lên table employee_salary
   for index, row in employee_salary_df.iterrows():
-    print(row)
-    # debug = (row.id, row.full_name, row.dob, row.phone, row.salary, row.extra, row.total)
-    # print(debug)
-    cursor.execute("INSERT INTO employee_salary(id,full_name,dob,phone,salary,extra,total) VALUES({},{},{},{},{},{},{})".format(row.id, row.full_name, row.dob, row.phone, row.salary, row.extra, row.total))
-  cnxn.commit()
-  cursor.close()
+    query = "INSERT INTO employee_salary (id,full_name,dob,phone,salary,extra,total) VALUES({},N'{}','{}','{}',{},{},{})".format(int(row.id), row.full_name, row.dob, row.phone, int(float(row.salary)), int(float(row.extra)), int(float(row.total)))
+    cursor.execute(query)
+    conn.commit()
 
 
 
@@ -137,12 +140,12 @@ def menu():
 
     elif ans=="1":
       print("1. Khởi tạo, kết nối các đối tượng trong CSDL")
-      print("Tiến hành khởi tạo")
-      for i in tqdm(range(50)):
-        time.sleep(0.005)
-      print("Tiến hành kết nối các đối tượng trong CSDL")
-      for i in tqdm(range(100)):
-        time.sleep(0.002)
+      # print("Tiến hành khởi tạo")
+      # for i in tqdm(range(50)):
+      #   time.sleep(0.005)
+      # print("Tiến hành kết nối các đối tượng trong CSDL")
+      # for i in tqdm(range(100)):
+      #   time.sleep(0.002)
       employee_dict = ConnectDatabase()
       print("Hoàn tất")
       wait()
@@ -159,18 +162,18 @@ def menu():
 
     elif ans=="4":
       print("4. Tính lương")
-      print("Tiến hành tính lương nhân viên ...")
-      for i in tqdm(range(50)):
-        time.sleep(0.002)
+      # print("Tiến hành tính lương nhân viên ...")
+      # for i in tqdm(range(50)):
+      #   time.sleep(0.002)
       employee_salary_df = Calculate_Salary(employee_dict)
       print("Hoàn tất")
       wait()
 
     elif ans=="5":
       print("5. Cập nhật lương lên server")
-      print("Tiến hành cập nhật dữ liệu lên server")
-      for i in tqdm(range(50)):
-        time.sleep(0.002)
+      # print("Tiến hành cập nhật dữ liệu lên server")
+      # for i in tqdm(range(50)):
+      #   time.sleep(0.002)
       Upload_Salary_To_Server(employee_salary_df)
       print("Hoàn tất")
       wait()
